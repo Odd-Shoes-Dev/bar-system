@@ -24,7 +24,14 @@ export async function GET() {
       SELECT * FROM account_balances
       WHERE bar_id = ${user.bar_id} AND is_active = true
       ORDER BY sort_order`;
-    return NextResponse.json(data);
+
+    // Gross revenue = only money that came IN from sales (not net of allowances)
+    const [revRow] = await sql`
+      SELECT COALESCE(SUM(amount), 0)::bigint AS gross_revenue
+      FROM account_transactions
+      WHERE bar_id = ${user.bar_id} AND direction = 'in' AND reference_type = 'visit'`;
+
+    return NextResponse.json({ accounts: data, grossRevenue: Number(revRow?.gross_revenue || 0) });
   } catch (error) {
     console.error('Accounts GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         payment_method = ${pm},
         updated_at     = NOW()
       WHERE id = ${id} AND bar_id = ${user.bar_id} AND deleted_at IS NULL
-        AND (${branchId}::uuid IS NULL OR branch_id = ${branchId}::uuid)
+        AND (${branchId}::uuid IS NULL OR branch_id = ${branchId}::uuid OR branch_id IS NULL)
       RETURNING *`;
 
     if (!data) return NextResponse.json({ error: 'Expense not found' }, { status: 404 });
@@ -54,7 +54,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     await sql`
       UPDATE expenses SET deleted_at = NOW()
       WHERE id = ${id} AND bar_id = ${user.bar_id}
-        AND (${branchId}::uuid IS NULL OR branch_id = ${branchId}::uuid)`;
+        AND (${branchId}::uuid IS NULL OR branch_id = ${branchId}::uuid OR branch_id IS NULL)`;
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DELETE /api/expenses/[id] error:', err);

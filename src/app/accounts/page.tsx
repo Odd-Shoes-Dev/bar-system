@@ -68,8 +68,9 @@ export default function AccountsPage() {
   const [tab, setTab] = useState<Tab>('revenue');
 
   // Accounts
-  const [accounts,    setAccounts]    = useState<Account[]>([]);
-  const [acctLoading, setAcctLoading] = useState(true);
+  const [accounts,      setAccounts]      = useState<Account[]>([]);
+  const [grossRevenue,  setGrossRevenue]  = useState(0);
+  const [acctLoading,   setAcctLoading]   = useState(true);
 
   // Recent revenue transactions (across all revenue accounts, last 50)
   const [revTxns,    setRevTxns]    = useState<(Transaction & { account_name: string })[]>([]);
@@ -100,7 +101,9 @@ export default function AccountsPage() {
       const res = await fetch('/api/accounts');
       if (res.status === 401) { router.push('/login'); return; }
       if (!res.ok) { toast.error('Failed to load accounts'); return; }
-      setAccounts(await res.json());
+      const json = await res.json();
+      setAccounts(json.accounts ?? json);
+      setGrossRevenue(json.grossRevenue ?? 0);
     } finally {
       setAcctLoading(false);
     }
@@ -163,7 +166,6 @@ export default function AccountsPage() {
   }, [tab, accounts, revTxns.length, loadRevTxns]);
 
   // ─── Derived data ─────────────────────────────────────────────
-  const totalRevenue       = accounts.reduce((s, a) => s + Number(a.balance), 0);
   const totalAllowancesGiven = advances.filter(a => a.status !== 'cancelled').reduce((s, a) => s + Number(a.amount), 0);
 
   // ─── Handlers ─────────────────────────────────────────────────
@@ -247,7 +249,7 @@ export default function AccountsPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="card border-t-4 border-green-400 text-center">
             <p className="text-xs text-gray-500 mb-1">Total Revenue</p>
-            <p className="text-lg font-bold text-green-600">{fmt(totalRevenue)}</p>
+            <p className="text-lg font-bold text-green-600">{fmt(grossRevenue)}</p>
           </div>
           <div className="card border-t-4 border-orange-400 text-center">
             <p className="text-xs text-gray-500 mb-1">Allowances Given</p>

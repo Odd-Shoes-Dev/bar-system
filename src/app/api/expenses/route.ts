@@ -40,13 +40,14 @@ export async function GET(request: NextRequest) {
 
     const branchId = user.branch_id;
 
+    // Branch filter: owner sees all; branch user sees their branch + unassigned expenses
     const data = cat && pmFilter
-      ? await sql`SELECT e.*, s.name AS created_by_staff_name FROM expenses e LEFT JOIN users s ON s.id = e.created_by WHERE e.bar_id = ${user.bar_id} AND e.deleted_at IS NULL AND e.expense_date >= ${fromDate} AND e.expense_date <= ${toDate} AND e.category = ${cat} AND e.payment_method = ${pmFilter} AND (${branchId}::uuid IS NULL OR e.branch_id = ${branchId}::uuid) ORDER BY e.expense_date DESC`
+      ? await sql`SELECT e.*, s.name AS created_by_staff_name FROM expenses e LEFT JOIN users s ON s.id = e.created_by WHERE e.bar_id = ${user.bar_id} AND e.deleted_at IS NULL AND e.expense_date >= ${fromDate} AND e.expense_date <= ${toDate} AND e.category = ${cat} AND e.payment_method = ${pmFilter} AND (${branchId}::uuid IS NULL OR e.branch_id = ${branchId}::uuid OR e.branch_id IS NULL) ORDER BY e.expense_date DESC`
       : cat
-      ? await sql`SELECT e.*, s.name AS created_by_staff_name FROM expenses e LEFT JOIN users s ON s.id = e.created_by WHERE e.bar_id = ${user.bar_id} AND e.deleted_at IS NULL AND e.expense_date >= ${fromDate} AND e.expense_date <= ${toDate} AND e.category = ${cat} AND (${branchId}::uuid IS NULL OR e.branch_id = ${branchId}::uuid) ORDER BY e.expense_date DESC`
+      ? await sql`SELECT e.*, s.name AS created_by_staff_name FROM expenses e LEFT JOIN users s ON s.id = e.created_by WHERE e.bar_id = ${user.bar_id} AND e.deleted_at IS NULL AND e.expense_date >= ${fromDate} AND e.expense_date <= ${toDate} AND e.category = ${cat} AND (${branchId}::uuid IS NULL OR e.branch_id = ${branchId}::uuid OR e.branch_id IS NULL) ORDER BY e.expense_date DESC`
       : pmFilter
-      ? await sql`SELECT e.*, s.name AS created_by_staff_name FROM expenses e LEFT JOIN users s ON s.id = e.created_by WHERE e.bar_id = ${user.bar_id} AND e.deleted_at IS NULL AND e.expense_date >= ${fromDate} AND e.expense_date <= ${toDate} AND e.payment_method = ${pmFilter} AND (${branchId}::uuid IS NULL OR e.branch_id = ${branchId}::uuid) ORDER BY e.expense_date DESC`
-      : await sql`SELECT e.*, s.name AS created_by_staff_name FROM expenses e LEFT JOIN users s ON s.id = e.created_by WHERE e.bar_id = ${user.bar_id} AND e.deleted_at IS NULL AND e.expense_date >= ${fromDate} AND e.expense_date <= ${toDate} AND (${branchId}::uuid IS NULL OR e.branch_id = ${branchId}::uuid) ORDER BY e.expense_date DESC`;
+      ? await sql`SELECT e.*, s.name AS created_by_staff_name FROM expenses e LEFT JOIN users s ON s.id = e.created_by WHERE e.bar_id = ${user.bar_id} AND e.deleted_at IS NULL AND e.expense_date >= ${fromDate} AND e.expense_date <= ${toDate} AND e.payment_method = ${pmFilter} AND (${branchId}::uuid IS NULL OR e.branch_id = ${branchId}::uuid OR e.branch_id IS NULL) ORDER BY e.expense_date DESC`
+      : await sql`SELECT e.*, s.name AS created_by_staff_name FROM expenses e LEFT JOIN users s ON s.id = e.created_by WHERE e.bar_id = ${user.bar_id} AND e.deleted_at IS NULL AND e.expense_date >= ${fromDate} AND e.expense_date <= ${toDate} AND (${branchId}::uuid IS NULL OR e.branch_id = ${branchId}::uuid OR e.branch_id IS NULL) ORDER BY e.expense_date DESC`;
 
     // Revenue: use visits so we can apply the same branch filter
     const revData = await sql`
@@ -109,8 +110,8 @@ export async function POST(request: NextRequest) {
     const pm = validPM.includes(payment_method) ? payment_method : 'cash';
 
     const [data] = await sql`
-      INSERT INTO expenses (bar_id, category, amount, description, expense_date, payment_method, created_by)
-      VALUES (${user.bar_id}, ${category.trim()}, ${Number(amount)}, ${description?.trim() || null}, ${expense_date || new Date().toISOString().split('T')[0]}, ${pm}, ${user.id})
+      INSERT INTO expenses (bar_id, branch_id, category, amount, description, expense_date, payment_method, created_by)
+      VALUES (${user.bar_id}, ${user.branch_id || null}, ${category.trim()}, ${Number(amount)}, ${description?.trim() || null}, ${expense_date || new Date().toISOString().split('T')[0]}, ${pm}, ${user.id})
       RETURNING *`;
     return NextResponse.json(data, { status: 201 });
   } catch (err) {
