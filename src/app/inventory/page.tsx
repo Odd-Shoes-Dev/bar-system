@@ -8,10 +8,10 @@ import { useUser } from '@/contexts/UserContext';
 import { useBar } from '@/contexts/BarContext';
 import { formatCurrency } from '@/lib/utils';
 
-const UNITS = ['pcs', 'ml', 'litres', 'kg', 'g', 'box', 'bottle', 'sachet', 'roll', 'pair'];
+const UNITS = ['pcs', 'ml', 'litres', 'kg', 'g', 'box', 'bottle', 'crate', 'can', 'glass'];
 const REASONS = [
   { value: 'purchase',   label: 'Purchase / Restock' },
-  { value: 'use',        label: 'Used in Service' },
+  { value: 'use',        label: 'Used / Consumed' },
   { value: 'damage',     label: 'Damaged / Expired' },
   { value: 'return',     label: 'Returned to Supplier' },
   { value: 'adjustment', label: 'Stock Adjustment' },
@@ -418,7 +418,7 @@ export default function InventoryPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input value={groupForm.name} onChange={e => setGroupForm(f => ({ ...f, name: e.target.value }))} className="input w-full" placeholder="e.g. Hair Products" />
+                <input value={groupForm.name} onChange={e => setGroupForm(f => ({ ...f, name: e.target.value }))} className="input w-full" placeholder="e.g. Spirits, Beers, Wines, Soft Drinks" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-gray-400 font-normal">(optional)</span></label>
@@ -453,7 +453,7 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
-                  <input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} className="input w-full" placeholder="e.g. Hair Oil 500ml" />
+                  <input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} className="input w-full" placeholder="e.g. Tusker 500ml, Jameson 750ml" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Group</label>
