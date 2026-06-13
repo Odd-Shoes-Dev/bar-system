@@ -410,8 +410,8 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">Manage Services</p>
-                    <p className="text-sm text-gray-600">Add and edit services</p>
+                    <p className="font-medium text-gray-900">Manage Menu</p>
+                    <p className="text-sm text-gray-600">Add and edit menu items</p>
                   </div>
                 </div>
               </Link>
