@@ -134,8 +134,8 @@ export default function SalesPage() {
     const rows = visits.map(visit => [
       visit.receipt_number,
       formatDateTime(visit.created_at),
-      visit.client.name,
-      visit.client.phone,
+      visit.client?.name || 'Walk-in',
+      visit.client?.phone || '',
       visit.visit_services?.map(vs => `${vs.quantity}x ${vs.service?.name || 'Unknown'}`).join('; ') || '',
       visit.payment_method === 'mtn_mobile_money' ? 'MTN Mobile Money' : visit.payment_method === 'airtel_money' ? 'Airtel Money' : 'Cash',
       visit.total_amount,
@@ -374,8 +374,13 @@ export default function SalesPage() {
                       </td>
                       <td className="py-4 px-4">
                         <div>
-                          <p className="font-medium text-gray-900">{visit.client.name}</p>
-                          <p className="text-sm text-gray-600">{visit.client.phone}</p>
+                          {visit.client?.name
+                            ? <>
+                                <p className="font-medium text-gray-900">{visit.client.name}</p>
+                                {visit.client.phone && <p className="text-sm text-gray-600">{visit.client.phone}</p>}
+                              </>
+                            : <p className="font-medium text-gray-400 italic">Walk-in</p>
+                          }
                         </div>
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-600">

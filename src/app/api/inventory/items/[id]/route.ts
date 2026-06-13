@@ -23,7 +23,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         reorder_level = ${Number(reorder_level) || 0},
         cost_per_unit = ${Number(cost_per_unit) || 0},
         supplier      = ${supplier?.trim() || null},
-        is_active     = ${is_active},
+        is_active     = ${is_active ?? true},
         updated_at    = NOW()
       WHERE id = ${id} AND bar_id = ${user.bar_id}
         AND (${branchId}::uuid IS NULL OR branch_id = ${branchId}::uuid)`;

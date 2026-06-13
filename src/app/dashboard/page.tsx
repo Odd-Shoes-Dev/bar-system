@@ -351,7 +351,10 @@ export default function DashboardPage() {
                   {recentVisits.map((visit) => (
                     <div key={visit.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium text-gray-900">{visit.client.name}</p>
+                        {visit.client?.name
+                          ? <p className="font-medium text-gray-900">{visit.client.name}</p>
+                          : <p className="font-medium text-gray-400 italic">Walk-in</p>
+                        }
                         <p className="text-sm text-gray-600">{formatTime(visit.created_at)}</p>
                       </div>
                       <div className="text-right">

@@ -38,7 +38,12 @@ export default function InventoryPage() {
   const [items, setItems]         = useState<Item[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [invSummary, setInvSummary] = useState({ totalValue: 0, lowStockCount: 0, totalItems: 0 });
-  const [filterGroup, setFilterGroup] = useState('');
+  const [filterGroup,    setFilterGroup]    = useState('');
+  const [searchName,     setSearchName]     = useState('');
+  const [filterLowStock, setFilterLowStock] = useState(false);
+  const [filterMaxQty,   setFilterMaxQty]   = useState('');
+  const [filterMinCost,  setFilterMinCost]  = useState('');
+  const [filterMaxCost,  setFilterMaxCost]  = useState('');
   const [loading, setLoading]     = useState(true);
 
   // Group modal
@@ -52,9 +57,6 @@ export default function InventoryPage() {
   const [editingItem, setEditingItem]       = useState<Item | null>(null);
   const [itemForm, setItemForm]             = useState(BLANK_ITEM);
   const [savingItem, setSavingItem]         = useState(false);
-
-  const [openMenuId, setOpenMenuId]          = useState<string | null>(null);
-  const [menuPos, setMenuPos]                = useState<{ top: number; right: number } | null>(null);
 
   // Adjust qty modal
   const [adjustItem, setAdjustItem]         = useState<Item | null>(null);
@@ -179,6 +181,18 @@ export default function InventoryPage() {
 
   const lowStock = (i: Item) => Number(i.reorder_level) > 0 && Number(i.current_qty) <= Number(i.reorder_level);
 
+  const hasActiveFilters = searchName || filterLowStock || filterMaxQty !== '' || filterMinCost !== '' || filterMaxCost !== '';
+  const clearFilters = () => { setSearchName(''); setFilterLowStock(false); setFilterMaxQty(''); setFilterMinCost(''); setFilterMaxCost(''); };
+
+  const displayedItems = items.filter(i => {
+    if (searchName && !i.name.toLowerCase().includes(searchName.toLowerCase())) return false;
+    if (filterLowStock && !lowStock(i)) return false;
+    if (filterMaxQty !== '' && Number(i.current_qty) > Number(filterMaxQty)) return false;
+    if (filterMinCost !== '' && Number(i.cost_per_unit) < Number(filterMinCost)) return false;
+    if (filterMaxCost !== '' && Number(i.cost_per_unit) > Number(filterMaxCost)) return false;
+    return true;
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       <SalonHeader title="Inventory">
@@ -241,12 +255,92 @@ export default function InventoryPage() {
               ))}
             </div>
 
+            {/* Filters */}
+            <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
+              <div className="flex flex-wrap gap-2 items-center">
+                {/* Name search */}
+                <div className="relative flex-1 min-w-[180px]">
+                  <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  <input
+                    type="text"
+                    placeholder="Search by name…"
+                    value={searchName}
+                    onChange={e => setSearchName(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+
+                {/* Low stock toggle */}
+                <button
+                  onClick={() => setFilterLowStock(v => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${filterLowStock ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+                  Low stock only
+                </button>
+
+                {/* Qty threshold */}
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
+                  <span>Qty ≤</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="—"
+                    value={filterMaxQty}
+                    onChange={e => setFilterMaxQty(e.target.value)}
+                    className="w-16 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 text-center"
+                  />
+                </div>
+
+                {/* Cost range */}
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
+                  <span>Cost</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Min"
+                    value={filterMinCost}
+                    onChange={e => setFilterMinCost(e.target.value)}
+                    className="w-20 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 text-center"
+                  />
+                  <span>–</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Max"
+                    value={filterMaxCost}
+                    onChange={e => setFilterMaxCost(e.target.value)}
+                    className="w-20 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 text-center"
+                  />
+                </div>
+
+                {/* Clear */}
+                {hasActiveFilters && (
+                  <button onClick={clearFilters} className="text-xs text-gray-400 hover:text-gray-700 underline">
+                    Clear filters
+                  </button>
+                )}
+              </div>
+
+              {/* Active filter summary */}
+              {hasActiveFilters && (
+                <p className="text-xs text-gray-400">
+                  Showing {displayedItems.length} of {items.length} items
+                </p>
+              )}
+            </div>
+
             <div className="card p-0 overflow-hidden">
               {loading ? (
                 <div className="p-8 text-center text-gray-400">Loading…</div>
               ) : items.length === 0 ? (
                 <div className="p-8 text-center text-gray-400">No items yet.
                   {canEdit && <button onClick={openAddItem} className="block mx-auto mt-3 btn-primary text-sm">Add First Item</button>}
+                </div>
+              ) : displayedItems.length === 0 ? (
+                <div className="p-8 text-center text-gray-400">
+                  No items match the current filters.
+                  <button onClick={clearFilters} className="block mx-auto mt-2 text-sm text-indigo-600 hover:underline">Clear filters</button>
                 </div>
               ) : (
                 <table className="w-full text-sm">
@@ -263,7 +357,7 @@ export default function InventoryPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {items.map(i => (
+                    {displayedItems.map(i => (
                       <tr key={i.id} className={`hover:bg-gray-50 ${lowStock(i) ? 'bg-red-50' : ''}`}>
                         <td className="py-3 px-4">
                           <div className="font-medium text-gray-900">{i.name}</div>
@@ -293,19 +387,28 @@ export default function InventoryPage() {
                         <td className="py-3 px-4 text-right font-medium text-gray-900">{formatCurrency(i.current_qty * i.cost_per_unit)}</td>
                         {canEdit && (
                           <td className="py-3 px-4">
-                            <div className="flex justify-end">
+                            <div className="flex items-center justify-end gap-1">
                               <button
-                                onClick={e => {
-                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                  setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
-                                  setOpenMenuId(openMenuId === i.id ? null : i.id);
-                                }}
-                                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                                onClick={() => openAdjust(i)}
+                                className="px-2 py-1 text-xs rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-medium"
+                                title="Adjust stock quantity"
                               >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                  <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
-                                </svg>
+                                Adjust
                               </button>
+                              <button
+                                onClick={() => openEditItem(i)}
+                                className="px-2 py-1 text-xs rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium"
+                              >
+                                Edit
+                              </button>
+                              {canAdmin && (
+                                <button
+                                  onClick={() => deleteItem(i.id)}
+                                  className="px-2 py-1 text-xs rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-medium"
+                                >
+                                  Delete
+                                </button>
+                              )}
                             </div>
                           </td>
                         )}
@@ -450,11 +553,11 @@ export default function InventoryPage() {
               <button onClick={() => setShowItemModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
             <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                <input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} className="input w-full" placeholder="e.g. Tusker 500ml, Jameson 750ml" autoFocus />
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
-                  <input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} className="input w-full" placeholder="e.g. Tusker 500ml, Jameson 750ml" />
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Group</label>
                   <select value={itemForm.group_id} onChange={e => setItemForm(f => ({ ...f, group_id: e.target.value }))} className="input w-full">
@@ -469,23 +572,29 @@ export default function InventoryPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{editingItem ? 'Reorder Level' : 'Opening Qty'}</label>
-                  <input type="number" min={0} value={editingItem ? itemForm.reorder_level : itemForm.current_qty} onChange={e => setItemForm(f => ({ ...f, [editingItem ? 'reorder_level' : 'current_qty']: e.target.value }))} className="input w-full" placeholder="0" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {editingItem ? 'Current Qty' : 'Opening Qty'}
+                  </label>
+                  {editingItem ? (
+                    <div className="input w-full bg-gray-50 text-gray-500 cursor-not-allowed">
+                      {editingItem.current_qty} {editingItem.unit} <span className="text-xs">(use Adjust Stock)</span>
+                    </div>
+                  ) : (
+                    <input type="number" min={0} value={itemForm.current_qty} onChange={e => setItemForm(f => ({ ...f, current_qty: e.target.value }))} className="input w-full" placeholder="0" />
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{editingItem ? 'Cost / unit (UGX)' : 'Reorder Level'}</label>
-                  <input type="number" min={0} value={editingItem ? itemForm.cost_per_unit : itemForm.reorder_level} onChange={e => setItemForm(f => ({ ...f, [editingItem ? 'cost_per_unit' : 'reorder_level']: e.target.value }))} className="input w-full" placeholder="0" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reorder Level</label>
+                  <input type="number" min={0} value={itemForm.reorder_level} onChange={e => setItemForm(f => ({ ...f, reorder_level: e.target.value }))} className="input w-full" placeholder="0" />
                 </div>
-                {editingItem && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Cost / unit (UGX)</label>
-                    <input type="number" min={0} value={itemForm.cost_per_unit} onChange={e => setItemForm(f => ({ ...f, cost_per_unit: e.target.value }))} className="input w-full" placeholder="0" />
-                  </div>
-                )}
-                <div className={editingItem ? '' : 'col-span-2'}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Supplier <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <input value={itemForm.supplier} onChange={e => setItemForm(f => ({ ...f, supplier: e.target.value }))} className="input w-full" placeholder="Supplier name" />
-                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cost / unit (UGX)</label>
+                <input type="number" min={0} value={itemForm.cost_per_unit} onChange={e => setItemForm(f => ({ ...f, cost_per_unit: e.target.value }))} className="input w-full" placeholder="0" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Supplier <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input value={itemForm.supplier} onChange={e => setItemForm(f => ({ ...f, supplier: e.target.value }))} className="input w-full" placeholder="e.g. Nile Breweries, Crown Beverages" />
               </div>
             </div>
             <div className="flex gap-3 p-6 border-t border-gray-100 sticky bottom-0 bg-white">
@@ -541,53 +650,6 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* ── Fixed-position row action dropdown (escapes overflow-hidden) ── */}
-      {openMenuId && menuPos && (() => {
-        const item = items.find(i => i.id === openMenuId);
-        if (!item) return null;
-        return (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
-            <div
-              className="fixed z-50 w-44 bg-white border border-gray-200 rounded-xl shadow-xl py-1"
-              style={{ top: menuPos.top, right: menuPos.right }}
-            >
-              <button
-                onClick={() => { openAdjust(item); setOpenMenuId(null); }}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-              >
-                <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                Adjust Stock
-              </button>
-              <button
-                onClick={() => { openEditItem(item); setOpenMenuId(null); }}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-              >
-                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit Item
-              </button>
-              {canAdmin && (
-                <>
-                  <div className="border-t border-gray-100 my-1" />
-                  <button
-                    onClick={() => { deleteItem(item.id); setOpenMenuId(null); }}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete
-                  </button>
-                </>
-              )}
-            </div>
-          </>
-        );
-      })()}
     </div>
   );
 }
